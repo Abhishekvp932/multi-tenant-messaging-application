@@ -1,3 +1,5 @@
+
+// eslint-disable-next-line no-unused-vars
 import { io, Socket } from 'socket.io-client';
 
 export interface SocketMessage {
@@ -18,9 +20,11 @@ export interface TypingUser {
 
 class SocketService {
   private socket: Socket | null = null;
+  // eslint-disable-next-line
   private token: string | null = null;
-
+  
   connect(userId: string, userName: string) {
+    console.log(this.token);
     this.socket = io(import.meta.env.VITE_API_URL, {
       withCredentials: true,
       query: {

@@ -9,6 +9,7 @@ interface RouteGuardProps {
 }
 
 export default function RouteGuard({ children, allowedRole }: RouteGuardProps) {
+  console.log(allowedRole)
   const navigate = useNavigate();
   const location = useLocation();
   const admin = useSelector((state: RootState) => state.admin.admin);

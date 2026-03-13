@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Users, Hash, UserPlus, X, Shield, Send, ArrowLeft, MessageSquare, LogOut } from "lucide-react";
-import { createGroup, getAllGroups, getUsersByRole, addMemberToGroup, getGroupsByMember } from "@/services/group";
+import { createGroup, getAllGroups, getUsersByRole} from "@/services/group";
 import { toast, ToastContainer } from "react-toastify";
 import { handleApiError } from "@/utils/handleApiError";
 import { useSelector, useDispatch } from "react-redux";
@@ -91,6 +91,7 @@ export default function AdminDashboard() {
       toast.success('Logged out successfully');
     } catch (error) {
       // Even if API fails, clear local state
+      toast.error(handleApiError(error))
       dispatch(adminLogout());
       socketService.disconnect();
       navigate('/');
@@ -153,7 +154,8 @@ export default function AdminDashboard() {
         const groupsData = await getAllGroups(admin._id);
         setGroups(groupsData);
       } catch (error) {
-        toast.error('Failed to load groups');
+        toast.error(handleApiError(error))
+        // toast.error('Failed to load groups');
       } finally {
         setLoading(false);
       }
@@ -169,7 +171,8 @@ export default function AdminDashboard() {
         const usersData = await getUsersByRole('user');
         setOrgMembers(usersData);
       } catch (error) {
-        toast.error('Failed to load users');
+        // toast.error('Failed to load users');
+        toast.error(handleApiError(error))
       } finally {
         setMembersLoading(false);
       }
