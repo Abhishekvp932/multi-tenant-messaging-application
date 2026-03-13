@@ -21,7 +21,7 @@ class SocketService {
   private token: string | null = null;
 
   connect(userId: string, userName: string) {
-    this.socket = io('http://localhost:4000', {
+    this.socket = io(import.meta.env.VITE_API_URL, {
       withCredentials: true,
       query: {
         userId,
