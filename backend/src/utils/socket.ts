@@ -17,6 +17,8 @@ import {
   IAddedToGroupData,
   IMemberAddedSuccessData,
 } from "../types/group.types";
+import dotenv from 'dotenv';
+dotenv.config();
 
 export class SocketManager {
   private io: SocketIOServer;
@@ -25,7 +27,7 @@ export class SocketManager {
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: "http://localhost:5173",
+        origin: process.env.API_URL,
         methods: ["GET", "POST"],
         credentials: true,
       },
