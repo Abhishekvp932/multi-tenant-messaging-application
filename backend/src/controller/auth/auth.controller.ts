@@ -11,7 +11,6 @@ export class AuthController implements IAuthController {
 
   async login(req: Request, res: Response): Promise<void> {
     try {
-        // console.log('login request is comming ...');
       const { email, password } = req.body;
       const result = await this._authService.login(email, password);
       
@@ -34,7 +33,6 @@ export class AuthController implements IAuthController {
       res.status(HttpStatus.OK).json(result.user);
     } catch (error) {
       const err = error as Error;
-      console.error('Login error:', err);
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ msg: err.message });
     }
   }
@@ -42,7 +40,6 @@ export class AuthController implements IAuthController {
   async signup(req: Request, res: Response): Promise<void> {
     try {
       const { name, email,phone, password ,role,organizationName} = req.body;
-      console.log('req.body',req.body);
       const result = await this._authService.signup(name, email,phone, password,role,organizationName);
       res.status(HttpStatus.CREATED).json(result);
     } catch (error) {

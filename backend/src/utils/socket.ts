@@ -1,31 +1,16 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import cookie from 'cookie-parser';
+import { Types } from 'mongoose';
 import User from '../models/implementation/user.model';
 import { Message } from '../models/implementation/message.model';
 import Group from '../models/implementation/group.model';
-
-export interface SocketUser {
-  userId: string;
-  name: string;
-  email: string;
-  role: string;
-  socketId: string;
-}
-
-export interface SocketMessage {
-  _id: string;
-  text: string;
-  senderId: string;
-  senderName: string;
-  groupId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { ISocket, SocketUser as ISocketUser, SocketMessage as ISocketMessage, TypingData, AddMemberToGroupData, SendMessageData } from '../types/socket.types';
+import { IAddedToGroupData, IMemberAddedSuccessData } from '../types/group.types';
 
 export class SocketManager {
   private io: SocketIOServer;
-  private connectedUsers: Map<string, SocketUser> = new Map();
+  private connectedUsers: Map<string, ISocketUser> = new Map();
 
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
@@ -42,12 +27,12 @@ export class SocketManager {
 
   private setupMiddleware() {
     // Simplified authentication - we'll handle user verification in individual events
-    this.io.use(async (socket: any, next: any) => {
+    this.io.use(async (socket: ISocket, next: (err?: Error) => void) => {
       try {
         // For now, we'll allow connection and verify user in each event
         // This is simpler and works with cookie-based auth
-        const userId = socket.handshake.query.userId || 'temp';
-        const userName = socket.handshake.query.userName || 'User';
+        const userId = (socket.handshake.query.userId as string) || 'temp';
+        const userName = (socket.handshake.query.userName as string) || 'User';
         
         socket.data.user = {
           userId: userId,
@@ -56,18 +41,18 @@ export class SocketManager {
           role: 'user' // We'll determine admin status in individual events
         };
         next();
-      } catch (error: any) {
+      } catch (error: unknown) {
         next(new Error('Authentication failed'));
       }
     });
   }
 
   private setupEventHandlers() {
-    this.io.on('connection', (socket: any) => {
-      const user = socket.data.user as SocketUser;
+    this.io.on('connection', (socket: ISocket) => {
+      const user = socket.data.user as ISocketUser;
       
       // Store user connection
-      const socketUser: SocketUser = {
+      const socketUser: ISocketUser = {
         ...user,
         socketId: socket.id
       };
@@ -86,7 +71,7 @@ export class SocketManager {
 
           // Check if user is creator or member
           const isMember = group.createdBy.toString() === user.userId || 
-                          group.members.some((memberId: any) => memberId.toString() === user.userId);
+                          group.members.some((memberId: Types.ObjectId) => memberId.toString() === user.userId);
           
           if (!isMember) {
             socket.emit('error', { message: 'You are not a member of this group' });
@@ -102,7 +87,7 @@ export class SocketManager {
             .populate('senderId', 'name');
           
           socket.emit('group_messages', recentMessages.reverse());
-        } catch (error: any) {
+        } catch (error: unknown) {
           socket.emit('error', { message: 'Failed to join group' });
         }
       });
@@ -113,10 +98,7 @@ export class SocketManager {
       });
 
       // Handle adding members to groups
-      socket.on('add_member_to_group', async (data: {
-        groupId: string;
-        userId: string;
-      }) => {
+      socket.on('add_member_to_group', async (data: AddMemberToGroupData) => {
         try {
           const { groupId, userId } = data;
           
@@ -152,27 +134,24 @@ export class SocketManager {
 
           // Notify the specific user who was added
           this.sendToUser(userId, 'added_to_group', {
-            groupId: updatedGroup._id,
+            groupId: updatedGroup._id.toString(),
             groupName: updatedGroup.name,
             memberCount: updatedGroup.members.length
           });
 
           // Notify admin that member was added
           socket.emit('member_added_success', {
-            groupId: updatedGroup._id,
+            groupId: updatedGroup._id.toString(),
             memberCount: updatedGroup.members.length
           });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           socket.emit('error', { message: 'Failed to add member' });
         }
       });
 
       // Handle sending messages
-      socket.on('send_message', async (data: {
-        groupId: string;
-        text: string;
-      }) => {
+      socket.on('send_message', async (data: SendMessageData) => {
         try {
           const { groupId, text } = data;
           
@@ -189,7 +168,7 @@ export class SocketManager {
           }
 
           const isMember = group.createdBy.toString() === user.userId || 
-                          group.members.some((memberId: any) => memberId.toString() === user.userId);
+                          group.members.some((memberId: Types.ObjectId) => memberId.toString() === user.userId);
           
           if (!isMember) {
             socket.emit('error', { message: 'You are not a member of this group' });
@@ -209,7 +188,7 @@ export class SocketManager {
           // Broadcast message to all users in the group
           this.io.to(`group_${groupId}`).emit('new_message', savedMessage);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           socket.emit('error', { message: 'Failed to send message' });
         }
       });
@@ -220,7 +199,7 @@ export class SocketManager {
           userId: user.userId,
           userName: user.name,
           groupId
-        });
+        } as TypingData);
       });
 
       socket.on('typing_stop', (groupId: string) => {
@@ -228,7 +207,7 @@ export class SocketManager {
           userId: user.userId,
           userName: user.name,
           groupId
-        });
+        } as TypingData);
       });
 
       // Handle disconnection
@@ -237,25 +216,25 @@ export class SocketManager {
       });
 
       // Handle errors
-      socket.on('error', (error: any) => {
+      socket.on('error', (error: Error) => {
       });
     });
   }
 
   // Get online users in a group
-  public getGroupUsers(groupId: string): SocketUser[] {
+  public getGroupUsers(groupId: string): ISocketUser[] {
     // This would require tracking which groups each user is in
     // For now, return all connected users
     return Array.from(this.connectedUsers.values());
   }
 
   // Get all connected users
-  public getAllConnectedUsers(): SocketUser[] {
+  public getAllConnectedUsers(): ISocketUser[] {
     return Array.from(this.connectedUsers.values());
   }
 
   // Send notification to specific user
-  public sendToUser(userId: string, event: string, data: any) {
+  public sendToUser(userId: string, event: string, data: IAddedToGroupData | IMemberAddedSuccessData) {
     const user = this.connectedUsers.get(userId);
     if (user) {
       this.io.to(user.socketId).emit(event, data);
@@ -263,7 +242,7 @@ export class SocketManager {
   }
 
   // Send notification to all users in a group
-  public sendToGroup(groupId: string, event: string, data: any) {
+  public sendToGroup(groupId: string, event: string, data: ISocketMessage | TypingData) {
     this.io.to(`group_${groupId}`).emit(event, data);
   }
 

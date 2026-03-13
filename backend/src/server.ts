@@ -36,5 +36,4 @@ connectDB();
 initializeSocket(server);
 
 server.listen(PORT, () => {
-  console.log("service running", PORT);
 });

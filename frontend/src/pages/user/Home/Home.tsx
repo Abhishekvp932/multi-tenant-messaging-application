@@ -60,7 +60,6 @@ export default function ChatPage() {
       navigate('/');
       toast.success('Logged out successfully');
     } catch (error) {
-      console.error('Logout error:', error);
       // Even if API fails, clear local state
       dispatch(logout());
       socketService.disconnect();
@@ -76,7 +75,6 @@ export default function ChatPage() {
         const groupsData = await getGroupsByMember(user._id);
         setGroups(groupsData);
       } catch (error) {
-        console.error('Failed to fetch groups:', error);
         toast.error('Failed to load groups');
       } finally {
         setLoading(false);
@@ -126,7 +124,6 @@ export default function ChatPage() {
             const groupsData = await getGroupsByMember(user._id);
             setGroups(groupsData);
           } catch (error) {
-            console.error('Failed to fetch groups:', error);
           }
         };
         fetchGroups();

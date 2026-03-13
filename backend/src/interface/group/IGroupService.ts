@@ -1,7 +1,9 @@
+import { ICreateGroupResponse, IGroupResponse, IUserResponse, IAddMemberResponse } from '../../types/group.types';
+
 export interface IGroupService {
-    createGroup(name:string,createrId:string):Promise<{msg : string, group?: any}>;
-    getAllGroups(createrId:string):Promise<any[]>;
-    getGroupsByMember(memberId:string):Promise<any[]>;
-    getUsersByRole(role:string):Promise<any[]>;
-    addMemberToGroup(groupId:string, userId:string):Promise<any>;
+    createGroup(name:string,createrId:string):Promise<ICreateGroupResponse>;
+    getAllGroups(createrId:string):Promise<IGroupResponse[]>;
+    getGroupsByMember(memberId:string):Promise<IGroupResponse[]>;
+    getUsersByRole(role:string):Promise<IUserResponse[]>;
+    addMemberToGroup(groupId:string, userId:string):Promise<IAddMemberResponse>;
 }
