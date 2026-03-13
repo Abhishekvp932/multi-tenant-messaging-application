@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Login } from "@/services/auth";
 import { toast, ToastContainer } from "react-toastify";
 import { handleApiError } from "@/utils/handleApiError";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/features/userSlice";
 import { setAdmin } from "@/features/adminSlice";
+import type { RootState } from "@/app/store";
 
 interface LoginData {
   email: string;
@@ -27,9 +28,24 @@ export default function LoginPage() {
     password: "",
   });
   const [error, setError] = useState<ErrorData>({ email: "", password: "" });
+
+  const user = useSelector((state: RootState) => state.user.user);
+  const admin = useSelector((state: RootState) => state.admin.admin);
+
   const dispatch = useDispatch();
   const navigation = useNavigate();
 
+  useEffect(() => {
+    if (user) {
+      navigation("/user/home");
+    }
+  }, [user, navigation]);
+
+  useEffect(() => {
+    if (admin) {
+      navigation("/organization/dashboard");
+    }
+  }, [admin, navigation]);
   const validation = () => {
     const newError = { email: "", password: "" };
     let isValidate = true;
@@ -64,29 +80,30 @@ export default function LoginPage() {
       const res = await Login(formData.email, formData.password);
       toast.success(res.msg);
       setIsLoading(false);
-      if(res.role == "user"){
-         dispatch(
-        setUser({
-          _id: res?._id,
-          name: res?.name,
-          email: res?.email,
-          organizationName: res?.organizationName,
-          role: res?.role,
-        })
-      );
-       navigation("/home");
-      }else if(res.role == 'admin') {
-        dispatch(setAdmin({
-          _id:res?._id,
-          name:res?.name,
-          email:res?.email,
-          organizationName: res?.organizationName,
-          role: res?.role,
-        }))
-        navigation('/organization/dashboard');
-      } 
+      if (res.role == "user") {
+        dispatch(
+          setUser({
+            _id: res?._id,
+            name: res?.name,
+            email: res?.email,
+            organizationName: res?.organizationName,
+            role: res?.role,
+          }),
+        );
+        navigation("/home");
+      } else if (res.role == "admin") {
+        dispatch(
+          setAdmin({
+            _id: res?._id,
+            name: res?.name,
+            email: res?.email,
+            organizationName: res?.organizationName,
+            role: res?.role,
+          }),
+        );
+        navigation("/organization/dashboard");
+      }
       setIsLoading(false);
-     
     } catch (error) {
       toast.error(handleApiError(error));
       setIsLoading(false);
@@ -97,7 +114,6 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 py-8 sm:py-12">
       <Card className="w-full max-w-sm sm:max-w-md border-0 shadow-lg">
         <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
-          
           {/* Form Title */}
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
@@ -127,7 +143,11 @@ export default function LoginPage() {
                 }
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground text-sm"
               />
-              {error.email && <p style={{ color: "red" }} className="text-xs">{error.email}</p>}
+              {error.email && (
+                <p style={{ color: "red" }} className="text-xs">
+                  {error.email}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -150,7 +170,9 @@ export default function LoginPage() {
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground text-sm"
               />
               {error.password && (
-                <p style={{ color: "red" }} className="text-xs">{error.password}</p>
+                <p style={{ color: "red" }} className="text-xs">
+                  {error.password}
+                </p>
               )}
             </div>
 
